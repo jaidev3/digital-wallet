@@ -8,13 +8,13 @@ DATABASE_URL = "sqlite:///./wallet.db"
 engine = create_engine(DATABASE_URL, echo=True, future=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-session = sessionmaker(SessionLocal)
+# session = sessionmaker(SessionLocal)
 
 Base = declarative_base()
 
 
 def get_db():
-    db = session()
+    db = SessionLocal()
     try:
         yield db
     finally:

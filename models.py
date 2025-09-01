@@ -19,7 +19,7 @@ class Transaction(Base):
     __tablename__ = "transactions"
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    transaction_type = Column(String(20), nullable=False, choices=TRANSACTION_TYPES)
+    transaction_type = Column(String(20), nullable=False)
     amount = Column(Float, nullable=False)
     description = Column(String(255))
     reference_transaction_id = Column(Integer, ForeignKey("transactions.id"))

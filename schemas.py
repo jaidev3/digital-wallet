@@ -1,6 +1,7 @@
+from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel
-from pydantic import Optional
+
 class User(BaseModel):
     username: str
     email: str
@@ -28,11 +29,10 @@ class UserResponse(BaseModel):
     updated_at: datetime
     
 
-TRANSACTION_TYPES = ["DEBIT", "CREDIT", "TRANSFER_IN", "TRANSFER_OUT"]
 
 class Transaction(BaseModel):
     user_id: int
-    transaction_type: TRANSACTION_TYPES
+    transaction_type: str
     amount: float
     description: Optional[str] = None
     reference_transaction_id: int
@@ -41,3 +41,7 @@ class Transaction(BaseModel):
 
 class CreateTransaction(Transaction):
     recipient_user_id: int
+
+class GetAllTransactions(BaseModel):
+    user_id: int
+    transactions: List[Transaction]
