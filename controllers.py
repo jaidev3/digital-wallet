@@ -1,6 +1,6 @@
 from turtle import update
 from fastapi import Depends, HTTPException
-from models import Transaction
+from models import Transaction, User
 from schemas import CreateUser, UserResponse, UpdateUser, TRANSACTION_TYPES, WalletBalance
 from database import get_db
 from sqlalchemy.orm import Session
@@ -92,3 +92,9 @@ async def money_transfer(user_id: int, recipient_user_id: int, amount: float, db
     db.refresh(user)
     db.refresh(recipient_user)
     return user
+
+
+# get all transactions of user
+async def get_all_transactions(user_id: int, db: Session = Depends(get_db)):
+    transactions = db.execute(select(Transaction).filter(Transaction.user_id == user_id)).all()
+    return transactions
