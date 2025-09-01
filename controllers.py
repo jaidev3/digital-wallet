@@ -39,7 +39,6 @@ def get_wallet_balance(user_id: int, db: Session = Depends(get_db)):
 def add_wallet_balance(user_id: int, amount: float, db: Session = Depends(get_db)):
     user = db.execute(select(User).filter(User.id == user_id))
     user = user.scalar()
-    user = user.model_dump()
     print("user1", user)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -61,8 +60,7 @@ def withdraw_wallet_balance(user_id: int, amount: float, db: Session = Depends(g
     user = db.execute(select(User).filter(User.id == user_id))
     user = user.scalar()
     print("user2", user)
-    user = user.model_dump()
-    print("user3", user)
+    print("user3", user.balance)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     if user.balance < amount:
