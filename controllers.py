@@ -38,6 +38,8 @@ def get_wallet_balance(user_id: int, db: Session = Depends(get_db)):
 #  add wallet balance of user
 def add_wallet_balance(user_id: int, amount: float, db: Session = Depends(get_db)):
     user = db.execute(select(User).filter(User.id == user_id))
+    user = user.model_dump()
+    print("user1", user)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user.balance += amount
@@ -55,7 +57,8 @@ def add_wallet_balance(user_id: int, amount: float, db: Session = Depends(get_db
 
 #  withdraw wallet balance of user
 def withdraw_wallet_balance(user_id: int, amount: float, db: Session = Depends(get_db)):
-    user = db.execute(select(UserResponse).filter(UserResponse.id == user_id)).first()
+    user = db.execute(select(User).filter(User.id == user_id))
+    user = user.scalar()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     if user.balance < amount:
@@ -76,8 +79,10 @@ def withdraw_wallet_balance(user_id: int, amount: float, db: Session = Depends(g
 
 # money transfer to another user
 def money_transfer(user_id: int, recipient_user_id: int, amount: float, db: Session = Depends(get_db)):
-    user = db.execute(select(UserResponse).filter(UserResponse.id == user_id)).first()
-    recipient_user = db.execute(select(UserResponse).filter(UserResponse.id == recipient_user_id)).first()
+    user = db.execute(select(User).filter(User.id == user_id))
+    user = user.scalar()
+    recipient_user = db.execute(select(User).filter(User.id == recipient_user_id))
+    recipient_user = recipient_user.scalar()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     if not recipient_user:
@@ -100,6 +105,6 @@ def money_transfer(user_id: int, recipient_user_id: int, amount: float, db: Sess
 
 # get all transactions of user
 def get_all_transactions(user_id: int, db: Session = Depends(get_db)):
-    transactions = db.execute(select(GetAllTransactions).filter(GetAllTransactions.user_id == user_id))
+    transactions = db.execute(select(Transaction).filter(Transaction.user_id == user_id))
     transactions = transactions.scalar()
     return transactions
