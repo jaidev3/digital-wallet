@@ -5,34 +5,39 @@ from database import get_db
 from sqlalchemy.orm import Session
 from sqlalchemy import select, update
 
-async def create_user(user: CreateUser, db: Session = Depends(get_db)):
+def create_user(user: CreateUser, db: Session = Depends(get_db)):
     db.add(User(**user.model_dump()))
     db.commit()
-    db.refresh(User(**user.model_dump()))
+    # db.refresh(user)
     return user
 
-async def get_user(user_id: int, db: Session = Depends(get_db)):
-    user = db.execute(select(UserResponse).filter(UserResponse.id == user_id)).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+def get_user(user_id: int, db: Session = Depends(get_db)):
+    print("user_id", user_id)
+    #  retur user without password
+    user = db.execute(select(User).filter(User.id == user_id))
+    user = user.scalar()
+    user.password = None
     return user
 
-async def update_user(user_id: int, user: UpdateUser, db: Session = Depends(get_db)):
-    db.execute(update(UserResponse).filter(UserResponse.id == user_id), user.model_dump())
+def update_user(user_id: int, user: UpdateUser, db: Session = Depends(get_db)):
+    #  update data in user database
+    user = user.model_dump()
+    db.execute(update(User).filter(User.id == user_id), user)
     db.commit()
-    db.refresh(User(**user.model_dump()))
+    # db.refresh(user)
     return user
 
 #  get wallet balance of user
-async def get_wallet_balance(user_id: int, db: Session = Depends(get_db)):
-    user = db.execute(select(UserResponse).filter(UserResponse.id == user_id)).first()
+def get_wallet_balance(user_id: int, db: Session = Depends(get_db)):
+    user = db.execute(select(User).filter(User.id == user_id))
+    user = user.scalar()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user.balance
 
 #  add wallet balance of user
-async def add_wallet_balance(user_id: int, amount: float, db: Session = Depends(get_db)):
-    user = db.execute(select(UserResponse).filter(UserResponse.id == user_id)).first()
+def add_wallet_balance(user_id: int, amount: float, db: Session = Depends(get_db)):
+    user = db.execute(select(User).filter(User.id == user_id))
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user.balance += amount
@@ -49,7 +54,7 @@ async def add_wallet_balance(user_id: int, amount: float, db: Session = Depends(
     return user
 
 #  withdraw wallet balance of user
-async def withdraw_wallet_balance(user_id: int, amount: float, db: Session = Depends(get_db)):
+def withdraw_wallet_balance(user_id: int, amount: float, db: Session = Depends(get_db)):
     user = db.execute(select(UserResponse).filter(UserResponse.id == user_id)).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -70,7 +75,7 @@ async def withdraw_wallet_balance(user_id: int, amount: float, db: Session = Dep
 
 
 # money transfer to another user
-async def money_transfer(user_id: int, recipient_user_id: int, amount: float, db: Session = Depends(get_db)):
+def money_transfer(user_id: int, recipient_user_id: int, amount: float, db: Session = Depends(get_db)):
     user = db.execute(select(UserResponse).filter(UserResponse.id == user_id)).first()
     recipient_user = db.execute(select(UserResponse).filter(UserResponse.id == recipient_user_id)).first()
     if not user:
@@ -94,6 +99,7 @@ async def money_transfer(user_id: int, recipient_user_id: int, amount: float, db
 
 
 # get all transactions of user
-async def get_all_transactions(user_id: int, db: Session = Depends(get_db)):
-    transactions = db.execute(select(GetAllTransactions).filter(GetAllTransactions.user_id == user_id)).all()
+def get_all_transactions(user_id: int, db: Session = Depends(get_db)):
+    transactions = db.execute(select(GetAllTransactions).filter(GetAllTransactions.user_id == user_id))
+    transactions = transactions.scalar()
     return transactions
