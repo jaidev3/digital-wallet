@@ -1,6 +1,6 @@
 from datetime import datetime
 from pydantic import BaseModel
-
+from pydantic import Optional
 class User(BaseModel):
     username: str
     email: str
@@ -12,11 +12,11 @@ class CreateUser(User):
     pass
 
 class UpdateUser(BaseModel):
-    username: str
-    email: str
-    phone_number: str
-    password: str
-    balance: float
+    username: Optional[str] = None
+    email: Optional[str] = None
+    phone_number: Optional[str] = None
+    password: Optional[str] = None
+    balance: Optional[float] = None
 
 class UserResponse(BaseModel):
     id: int
@@ -26,12 +26,18 @@ class UserResponse(BaseModel):
     balance: float
     created_at: datetime
     updated_at: datetime
+    
+
+TRANSACTION_TYPES = ["DEBIT", "CREDIT", "TRANSFER_IN", "TRANSFER_OUT"]
 
 class Transaction(BaseModel):
     user_id: int
-    transaction_type: str
+    transaction_type: TRANSACTION_TYPES
     amount: float
-    description: str
+    description: Optional[str] = None
     reference_transaction_id: int
-    recipient_user_id: int
     created_at: datetime
+    updated_at: datetime
+
+class CreateTransaction(Transaction):
+    recipient_user_id: int

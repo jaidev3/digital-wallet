@@ -2,6 +2,7 @@ from datetime import datetime
 from sqlalchemy import Column, Integer, String, ForeignKey, Float, DateTime
 from database import Base
 
+TRANSACTION_TYPES = ["DEBIT", "CREDIT", "TRANSFER_IN", "TRANSFER_OUT"]
 
 class User(Base):
     __tablename__ = "users"
@@ -18,7 +19,7 @@ class Transaction(Base):
     __tablename__ = "transactions"
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    transaction_type = Column(String(20), nullable=False)
+    transaction_type = Column(String(20), nullable=False, choices=TRANSACTION_TYPES)
     amount = Column(Float, nullable=False)
     description = Column(String(255))
     reference_transaction_id = Column(Integer, ForeignKey("transactions.id"))
