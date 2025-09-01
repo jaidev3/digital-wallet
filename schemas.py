@@ -35,9 +35,9 @@ class Transaction(BaseModel):
     transaction_type: str
     amount: float
     description: Optional[str] = None
-    reference_transaction_id: int
-    created_at: datetime
-    updated_at: datetime
+    reference_transaction_id: Optional[int] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
 class CreateTransaction(Transaction):
     recipient_user_id: int
