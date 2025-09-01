@@ -1,6 +1,8 @@
-from typing import List, Optional
+from typing import List, Optional, Generic, TypeVar
 from datetime import datetime
 from pydantic import BaseModel
+
+T = TypeVar('T')
 
 class User(BaseModel):
     username: str
@@ -45,3 +47,20 @@ class CreateTransaction(Transaction):
 class GetAllTransactions(BaseModel):
     user_id: int
     transactions: List[Transaction]
+
+# Pagination models
+class PaginationParams(BaseModel):
+    page: int = 1
+    page_size: int = 10
+    
+    def offset(self) -> int:
+        return (self.page - 1) * self.page_size
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    items: List[T]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    has_next: bool
+    has_previous: bool

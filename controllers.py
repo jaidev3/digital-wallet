@@ -1,9 +1,10 @@
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Query
 from models import Transaction, User
-from schemas import CreateUser, UserResponse, UpdateUser, GetAllTransactions
+from schemas import CreateUser, UserResponse, UpdateUser, GetAllTransactions, PaginationParams, PaginatedResponse
 from database import get_db
 from sqlalchemy.orm import Session
-from sqlalchemy import select, update
+from sqlalchemy import select, update, func
+import math
 
 def create_user(user: CreateUser, db: Session = Depends(get_db)):
     db_user = User(**user.model_dump())
@@ -104,7 +105,61 @@ def money_transfer(user_id: int, recipient_user_id: int, amount: float, db: Sess
     return user
 
 
-# get all transactions of user
-def get_all_transactions(user_id: int, db: Session = Depends(get_db)):
-    transactions = db.execute(select(Transaction).where(Transaction.user_id == user_id)).scalars().all()
-    return transactions
+# get all transactions of user with pagination
+def get_all_transactions(user_id: int, page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100), db: Session = Depends(get_db)):
+    # Get total count
+    total_count = db.execute(select(func.count(Transaction.id)).where(Transaction.user_id == user_id)).scalar()
+    
+    # Calculate pagination
+    offset = (page - 1) * page_size
+    total_pages = math.ceil(total_count / page_size) if total_count > 0 else 1
+    
+    # Get paginated transactions
+    transactions = db.execute(
+        select(Transaction)
+        .where(Transaction.user_id == user_id)
+        .order_by(Transaction.created_at.desc())
+        .offset(offset)
+        .limit(page_size)
+    ).scalars().all()
+    
+    return PaginatedResponse(
+        items=transactions,
+        total=total_count,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+        has_next=page < total_pages,
+        has_previous=page > 1
+    )
+
+# get all users with pagination
+def get_all_users(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100), db: Session = Depends(get_db)):
+    # Get total count
+    total_count = db.execute(select(func.count(User.id))).scalar()
+    
+    # Calculate pagination
+    offset = (page - 1) * page_size
+    total_pages = math.ceil(total_count / page_size) if total_count > 0 else 1
+    
+    # Get paginated users (without password)
+    users = db.execute(
+        select(User)
+        .order_by(User.created_at.desc())
+        .offset(offset)
+        .limit(page_size)
+    ).scalars().all()
+    
+    # Remove password from response
+    for user in users:
+        user.password = None
+    
+    return PaginatedResponse(
+        items=users,
+        total=total_count,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+        has_next=page < total_pages,
+        has_previous=page > 1
+    )
