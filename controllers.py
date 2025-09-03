@@ -2,43 +2,56 @@ from fastapi import Depends, HTTPException
 from models import Transaction, User
 from schemas import CreateUser, UserResponse, UpdateUser, Transaction, GetAllTransactions
 from database import get_db
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 
-def create_user(user: CreateUser, db: Session = Depends(get_db)):
-    db.add(User(**user.model_dump()))
-    db.commit()
-    # db.refresh(user)
+async def create_user(user: CreateUser, db: AsyncSession = Depends(get_db)):
+    db_user = User(**user.model_dump())
+    db.add(db_user)
+    await db.commit()
+    await db.refresh(db_user)
     return user
 
-def get_user(user_id: int, db: Session = Depends(get_db)):
-    print("user_id", user_id)
-    #  retur user without password
-    user = db.execute(select(User).filter(User.id == user_id))
-    user = user.scalar()
+async def get_user(user_id: int, db: AsyncSession = Depends(get_db)):
+    user = await db.execute(select(User).where(User.id == user_id))
+    user = user.scalar_one_or_none()
     user.password = None
     return user
 
-def update_user(user_id: int, user: UpdateUser, db: Session = Depends(get_db)):
-    #  update data in user database
-    user = user.model_dump()
-    db.execute(update(User).filter(User.id == user_id), user)
-    db.commit()
-    # db.refresh(user)
-    return user
+async def get_users(db: AsyncSession = Depends(get_db), limit: int = 10, offset: int = 0):
+    users = await db.execute(select(User).order_by(User.id).offset(offset).limit(limit))
+    users = users.scalars().all()
+    return users
+
+async def update_user(user_id: int, user_update: UpdateUser, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.id == user_id))
+    db_user = result.scalar_one_or_none()
+
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    update_data = user_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_user, key, value)
+
+    db.add(db_user)
+
+    await db.commit()
+    await db.refresh(db_user)
+    return db_user
 
 #  get wallet balance of user
-def get_wallet_balance(user_id: int, db: Session = Depends(get_db)):
-    user = db.execute(select(User).filter(User.id == user_id))
-    user = user.scalar()
+async def get_wallet_balance(user_id: int, db: AsyncSession = Depends(get_db)):
+    user = await db.execute(select(User).where(User.id == user_id))
+    user = user.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user.balance
 
 #  add wallet balance of user
-def add_wallet_balance(user_id: int, amount: float, db: Session = Depends(get_db)):
-    user = db.execute(select(User).filter(User.id == user_id))
-    user = user.scalar()
+async def add_wallet_balance(user_id: int, amount: float, db: AsyncSession = Depends(get_db)):
+    user = await db.execute(select(User).where(User.id == user_id))
+    user = user.scalar_one_or_none()
     print("user1", user)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -51,14 +64,14 @@ def add_wallet_balance(user_id: int, amount: float, db: Session = Depends(get_db
         reference_transaction_id=None,
     )
     db.add(transaction)
-    db.commit()
+    await db.commit()
     db.refresh(user)
     return user
 
 #  withdraw wallet balance of user
-def withdraw_wallet_balance(user_id: int, amount: float, db: Session = Depends(get_db)):
-    user = db.execute(select(User).filter(User.id == user_id))
-    user = user.scalar()
+async def withdraw_wallet_balance(user_id: int, amount: float, db: AsyncSession = Depends(get_db)):
+    user = await db.execute(select(User).where(User.id == user_id))
+    user = user.scalar_one_or_none()
     print("user2", user)
     print("user3", user.balance)
     if not user:
@@ -74,17 +87,17 @@ def withdraw_wallet_balance(user_id: int, amount: float, db: Session = Depends(g
         reference_transaction_id=None,
     )
     db.add(transaction)
-    db.commit()
+    await db.commit()
     db.refresh(user)
     return user
 
 
 # money transfer to another user
-def money_transfer(user_id: int, recipient_user_id: int, amount: float, db: Session = Depends(get_db)):
-    user = db.execute(select(User).filter(User.id == user_id))
-    user = user.scalar()
-    recipient_user = db.execute(select(User).filter(User.id == recipient_user_id))
-    recipient_user = recipient_user.scalar()
+async def money_transfer(user_id: int, recipient_user_id: int, amount: float, db: AsyncSession = Depends(get_db)):
+    user = await db.execute(select(User).where(User.id == user_id))
+    user = user.scalar_one_or_none()
+    recipient_user = await db.execute(select(User).filter(User.id == recipient_user_id))
+    recipient_user = recipient_user.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     if not recipient_user:
@@ -99,14 +112,15 @@ def money_transfer(user_id: int, recipient_user_id: int, amount: float, db: Sess
         reference_transaction_id=None,
     )
     db.add(transaction)
-    db.commit()
+    await db.commit()
     db.refresh(user)
     db.refresh(recipient_user)
     return user
 
 
 # get all transactions of user
-def get_all_transactions(user_id: int, db: Session = Depends(get_db)):
-    transactions = db.execute(select(Transaction).filter(Transaction.user_id == user_id))
-    transactions = transactions.scalar()
+async def get_all_transactions(user_id: int, db: AsyncSession = Depends(get_db)):
+    transactions = await db.execute(select(Transaction).where(Transaction.user_id == user_id))
+    transactions = transactions.scalars().all()
+    print("transactions", transactions)
     return transactions
