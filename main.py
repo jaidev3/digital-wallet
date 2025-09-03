@@ -6,9 +6,9 @@ from routers import router as api_router
 app = FastAPI()
 
 @app.on_event("startup")
-def startup_event():
+async def startup_event():
     print("Starting up...")
-    create_db_and_tables()
+    await create_db_and_tables()
 
 app.include_router(api_router)
 

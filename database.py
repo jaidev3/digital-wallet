@@ -1,26 +1,25 @@
-
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
-DATABASE_URL = "sqlite:///./wallet.db"
 
-engine = create_engine(DATABASE_URL, echo=True, future=True)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+DATABASE_URL = "sqlite+aiosqlite:///./wallet.db"
 
-# session = sessionmaker(SessionLocal)
+engine = create_async_engine(DATABASE_URL, echo=True, future=True)
+SessionLocal = async_sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
 
 Base = declarative_base()
 
-
-def get_db():
-    db = SessionLocal()
+async def get_db():
     try:
-        yield db
+        async with SessionLocal() as session:
+            yield session
+    except Exception as e:
+        await session.rollback()
+        raise e
     finally:
-        db.close()
+        await session.close()
 
-def create_db_and_tables():
-    print("Creating tables...")
-    Base.metadata.create_all(engine)
-    print("Tables created successfully")
+
+async def create_db_and_tables():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
